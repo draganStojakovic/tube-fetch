@@ -1,0 +1,142 @@
+#!/usr/bin/bash
+
+cd "$(dirname "$0")" || exit
+
+YTDLP=$(which yt-dlp)
+
+if [[ ! -x $YTDLP ]]; then
+    echo -e "\033[1;31mInstall yt-dlp for this script to work."
+    exit
+fi
+
+if [[ ! -r "data.json" ]]; then
+    echo "Initial setup..."
+    echo "Example directory: ~/Videos"
+    read -r -p "Where to store downloaded videos?: " location
+    json_data=$(jq -nR --arg dir "$location" '{ "ytdlp": { "download_days": "5", "download_dir": $dir, "channels": [] } } ')
+    echo "$json_data" > "data.json"
+    echo "Run 'yt-auto -a' to subscribe to YouTube channels or playlists"
+    echo "Optionally, configure how many days back of videos should be downloaded. Default: 5 Days."
+    exit
+fi
+
+function add_channel () {
+    read -r -p "Paste channel name: " channel
+    if [[ ! $channel == "https://www.youtube.com/"* ]]; then
+        echo "That is not a valid YouTube link."
+        exit
+    fi
+    data=$(jq '.ytdlp.channels | length' data.json)
+    length=$(($data+1))
+    tmp=$(mktemp)
+    jq --arg ytchannel "$channel" --arg len "$length" \
+    '.ytdlp.channels += [{"id": $len, "link": $ytchannel}]' \
+    data.json > "$tmp" && mv "$tmp" data.json
+    exit
+}
+
+function delete_channel () {
+    read -r -p "What channel do you want to delete? (id): " id
+    if [[ $id == "" ]]; then
+        echo "Cannot leave empty."
+        exit
+    fi
+    if [[ ! $id =~ ^[0-9]+$ ]]; then
+        echo "Not a number. Try again."
+        exit
+    fi
+    tmp=$(mktemp)
+    jq --arg id "$id" 'del(.ytdlp.channels[] | select(.id == $id))' \
+    data.json > "$tmp" && mv "$tmp" data.json
+    exit 
+}
+
+function list_channels () {
+    data=$(jq -r '.ytdlp.channels[] | .id, .link' data.json)
+    if [[ $data = "" ]]; then
+        echo "Zero channels"
+    fi
+    echo "$data"
+    exit
+}
+
+function configure_download_days () {
+    read -r -p "How many days back of videos should be downloaded?: " days
+    if [[ $days == "" ]]; then
+        echo "Cannot leave empty."
+        exit
+    fi
+    if [[ ! $days =~ ^[0-9]+$ ]]; then
+        echo "Not a number. Try again."
+        exit
+    fi
+    tmp=$(mktemp)
+    jq --arg d "$days" '.ytdlp.download_days = $d' \
+    data.json > "$tmp" && mv "$tmp" data.json
+    exit
+}
+
+function configure_download_dir () {
+    read -r -p "Where to store downloaded videos?: " location
+    if [[ "$location" == "" ]]; then
+        echo "Cannot leave this field blank."
+        exit
+    fi
+    tmp=$(mktemp)
+    jq --arg dir "$location" '.ytdlp.download_dir = $dir' \
+    data.json > "$tmp" && mv "$tmp" data.json
+    exit
+}
+
+function download_video () {
+    if [[ ! -x $(which ffmpeg) ]]; then
+        echo -e "\033[1;33mFFMPEG missing. It is highly recommended to install it.\033[0m"
+        read -r -p "Proceed without ffmpeg? (y/n): " answer
+        if [[ ! "$answer" == "y" ]]; then
+            echo "Program execution stopped."
+            exit
+        fi
+    fi
+    file="%(channel)s/%(upload_date)s - %(title)s.%(ext)s"
+    download_days=$(jq -r .ytdlp.download_days data.json)
+    download_dir=$(jq -r .ytdlp.download_dir data.json)
+    download_date="$(date -d  "$download_days days ago" '+%Y%m%d')"
+    channels=$(jq -r .ytdlp.channels[] data.json)
+    for channel in $channels; do
+        "$YTDLP" -ciw -S "+res:1080,vcodec:vp9,acodec:opus" \
+        --embed-chapters --embed-subs --sub-langs=en \
+        --merge-output-format mkv --break-on-reject \
+        --dateafter "$download_date" \
+        --output "$download_dir/$file" "$channel"
+    done
+    exit
+}
+
+function print_help() {
+    echo "Usage:" 
+    echo "    " "tube-fetch""                                       Checks for new videos and then downloads them."
+    echo "    " "tube-fetch [options]"
+    echo ""
+    echo "Options:"
+    echo "    " "--help, -h""                                       Help menu"
+    echo "    " "-l""                                               Lists subscribed channels"
+    echo "    " "-a""                                               Add a channel or playlist."
+    echo "    " "-c""                                               Configure how many days back of videos should be downloaded."
+    echo "    " "-d""                                               Configure in which directory videos get downloaded to."
+    echo "    " "-del""                                             Deletes a channel or a playlist from a list."
+    exit
+}
+
+function err_msg() { echo "Invalid argument. Run 'yt-auto --help' for help."; exit; }
+
+case "$1" in
+    "") download_video ;;
+    "-a") add_channel ;;
+    "-del") delete_channel ;;
+    "-l") list_channels ;;
+    "-c") configure_download_days ;;
+    "-d") configure_download_dir ;;
+    "-h") print_help ;;
+    "--help") print_help ;;
+    *) err_msg ;;
+esac
