@@ -2,6 +2,10 @@
 
 This shell script is inspired by [auto-ytdlp](https://github.com/exadisme/auto-ytdlp), so it borrows a lot from it. The main difference between the tube-fetch and auto-ytdlp is, tube-fetch uses a json file for storing information and the latter does not. I may add that auto-ytdlp is a lot more polished; tube-fetch will get there eventually.
 
+## Who is it for
+
+This script is for people looking to eliminate the time scrolling though your YouTube recommended. It enables you to watch your favourite content without even setting foot on youtube.com, with one exception, you have to open up a channel or a playlist to get the URL.  
+
 ## Dependencies:
 
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp)
