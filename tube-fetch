@@ -97,11 +97,15 @@ function download_video () {
             exit
         fi
     fi
+    channels=$(jq -r .ytdlp.channels[].link data.json)
+    if [[ ! $channels ]]; then
+        echo -e "\033[1;31mAdd channel or playlist links with 'tube-fetch -a' before running 'tube-fetch'\033[0m"
+        exit
+    fi
     file="%(channel)s/%(upload_date)s - %(title)s.%(ext)s"
     download_days=$(jq -r .ytdlp.download_days data.json)
     download_dir=$(jq -r .ytdlp.download_dir data.json)
     download_date="$(date -d  "$download_days days ago" '+%Y%m%d')"
-    channels=$(jq -r .ytdlp.channels[] data.json)
     for channel in $channels; do
         "$YTDLP" -ciw -S "+res:1080,vcodec:vp9,acodec:opus" \
         --embed-chapters --embed-subs --sub-langs=en \
