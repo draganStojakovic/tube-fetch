@@ -33,9 +33,9 @@ Usage:
 
 Options:
     --help, -h                                      Help menu
-    -l                                              Lists subscribed channels
-    -a                                              Add achannel or playlist.
-    -c                                              Configurehow many days back of videos should be downloaded.
-    -d                                              Configurein which directory videos get downloaded to.
-    -del                                            Deletes achannel or a playlist from a list.
+    -l                                              List subscribed channels.
+    -a                                              Add channel or a playlist.
+    -c                                              Configure how many days worth of videos to download.
+    -d                                              Configure in which directory videos get downloaded to.
+    -del                                            Delete a channel or a playlist.
 ```

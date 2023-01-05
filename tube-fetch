@@ -36,9 +36,9 @@ function add_channel () {
 }
 
 function delete_channel () {
-    read -r -p "What channel do you want to delete? (id): " id
+    read -r -p "What channel do you want to delete? Run 'tube-fetch -l' to find out their id: " id
     if [[ $id == "" ]]; then
-        echo "Cannot leave empty."
+        echo "This field must not be blank."
         exit
     fi
     if [[ ! $id =~ ^[0-9]+$ ]]; then
@@ -61,7 +61,7 @@ function list_channels () {
 }
 
 function configure_download_days () {
-    read -r -p "How many days back of videos should be downloaded?: " days
+    read -r -p "How many days worth of videos should be downloaded?: " days
     if [[ $days == "" ]]; then
         echo "Cannot leave empty."
         exit
@@ -77,9 +77,9 @@ function configure_download_days () {
 }
 
 function configure_download_dir () {
-    read -r -p "Where to store downloaded videos?: " location
+    read -r -p "Where to download videos?: " location
     if [[ "$location" == "" ]]; then
-        echo "Cannot leave this field blank."
+        echo "This field must not be blank."
         exit
     fi
     tmp=$(mktemp)
@@ -123,11 +123,11 @@ function print_help() {
     echo ""
     echo "Options:"
     echo "    " "--help, -h""                                       Help menu"
-    echo "    " "-l""                                               Lists subscribed channels"
-    echo "    " "-a""                                               Add a channel or playlist."
-    echo "    " "-c""                                               Configure how many days back of videos should be downloaded."
+    echo "    " "-l""                                               List subscribed channels."
+    echo "    " "-a""                                               Add channel or a playlist."
+    echo "    " "-c""                                               Configure how many days worth of videos to download."
     echo "    " "-d""                                               Configure in which directory videos get downloaded to."
-    echo "    " "-del""                                             Deletes a channel or a playlist from a list."
+    echo "    " "-del""                                             Delete a channel or a playlist."
     exit
 }
 
