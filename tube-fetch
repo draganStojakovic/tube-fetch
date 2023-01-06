@@ -37,43 +37,40 @@ if [[ ! -r "data.json" ]]; then
 fi
 
 function add_channel () {
-    local data length tmp
+    local data channelName tmp
     read -r -p "Paste channel name: " channel
     if [[ ! $channel == "https://www.youtube.com/"* ]]; then
         echo "That is not a valid YouTube link."
         exit 1
     fi
     data=$(jq '.ytdlp.channels | length' data.json)
-    length=$((data+1))
+    channelName=$(yt-dlp -O channel --playlist-end 1 "$channel")
     tmp=$(mktemp)
-    jq --arg ytchannel "$channel" --arg len "$length" \
-    '.ytdlp.channels += [{"id": $len, "link": $ytchannel}]' \
+    jq --arg ytchannel "$channel" --arg name "$channelName" \
+    '.ytdlp.channels += [{"name": $name, "link": $ytchannel}]' \
     data.json > "$tmp" && mv "$tmp" data.json
     exit 0
 }
 
 function delete_channel () {
     local tmp
-    read -r -p "What channel do you want to delete? Run 'tube-fetch -l' to find out their id: " id
-    if [[ $id == "" ]]; then
+    read -r -p "What channel do you want to delete? Run 'tube-fetch -l' to find out their name: " name
+    if [[ ! $name ]]; then
         echo "This field must not be blank."
         exit 1
     fi
-    if [[ ! $id =~ ^[0-9]+$ ]]; then
-        echo "Not a number. Try again."
-        exit 1
-    fi
     tmp=$(mktemp)
-    jq --arg id "$id" 'del(.ytdlp.channels[] | select(.id == $id))' \
+    jq --arg name "$name" 'del(.ytdlp.channels[] | select(.name == $name))' \
     data.json > "$tmp" && mv "$tmp" data.json
     exit 0
 }
 
 function list_channels () {
     local data
-    data=$(jq -r '.ytdlp.channels[] | .id, .link' data.json)
+    data=$(jq -r '.ytdlp.channels[].name' data.json)
     if [[ ! $data ]]; then
         echo "Zero channels"
+        exit 0
     fi
     echo "$data"
     exit 0
