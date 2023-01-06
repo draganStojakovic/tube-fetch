@@ -2,12 +2,8 @@
 
 cd "$(dirname "$0")" || exit
 
-YTDLP=$(which yt-dlp)
-
-if [[ ! -x $YTDLP ]]; then
-    echo -e "\033[1;31mInstall yt-dlp for this script to work."
-    exit
-fi
+which yt-dlp >/dev/null 2>&1 || { echo -e "\033[1;31mInstall yt-dlp for this script to work."; exit 1; }
+which jq >/dev/null 2>&1 || { echo -e "\033[1;31mInstall jq for this script to work."; exit 1; }
 
 if [[ ! -r "data.json" ]]; then
     echo "Initial setup..."
@@ -53,7 +49,7 @@ function delete_channel () {
 
 function list_channels () {
     data=$(jq -r '.ytdlp.channels[] | .id, .link' data.json)
-    if [[ $data = "" ]]; then
+    if [[ ! $data ]]; then
         echo "Zero channels"
     fi
     echo "$data"
@@ -62,7 +58,7 @@ function list_channels () {
 
 function configure_download_days () {
     read -r -p "How many days worth of videos should be downloaded?: " days
-    if [[ $days == "" ]]; then
+    if [[ ! $days ]]; then
         echo "Cannot leave empty."
         exit
     fi
@@ -107,7 +103,7 @@ function download_video () {
     download_dir=$(jq -r .ytdlp.download_dir data.json)
     download_date="$(date -d  "$download_days days ago" '+%Y%m%d')"
     for channel in $channels; do
-        "$YTDLP" -ciw -S "+res:1080,vcodec:vp9,acodec:opus" \
+        yt-dlp -ciw -S "+res:1080,vcodec:vp9,acodec:opus" \
         --embed-chapters --embed-subs --sub-langs=en \
         --merge-output-format mkv --break-on-reject \
         --dateafter "$download_date" \
