@@ -1,9 +1,20 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 cd "$(dirname "$0")" || exit
 
-which yt-dlp >/dev/null 2>&1 || { echo -e "\033[1;31mInstall yt-dlp for this script to work."; exit 1; }
-which jq >/dev/null 2>&1 || { echo -e "\033[1;31mInstall jq for this script to work."; exit 1; }
+requireBashVersion () {
+  (( "${BASH_VERSINFO[0]:-0}" < "${1/%.*}" )) && return 1
+  (( "${BASH_VERSINFO[0]:-0}" == "${1/%.*}" && "${BASH_VERSINFO[1]:-0}" < "${1/#*.}" )) && return 1
+  return 0
+}
+
+requireBashVersion 4.2 || {
+  echo "This script requires bash version 4.2 or above." >&2
+  exit 1
+}
+
+which yt-dlp >/dev/null 2>&1 || { echo -e "\033[1;31mInstall yt-dlp for this script to work.\033[0m"; exit 1; }
+which jq >/dev/null 2>&1 || { echo -e "\033[1;31mInstall jq for this script to work.\033[0m"; exit 1; }
 
 if [[ ! -r "data.json" ]]; then
     echo "Initial setup..."
@@ -13,90 +24,96 @@ if [[ ! -r "data.json" ]]; then
     echo "$json_data" > "data.json"
     echo "Run 'yt-auto -a' to subscribe to YouTube channels or playlists"
     echo "Optionally, configure how many days back of videos should be downloaded. Default: 5 Days."
-    exit
+    exit 0
 fi
 
 function add_channel () {
+    local data length tmp
     read -r -p "Paste channel name: " channel
     if [[ ! $channel == "https://www.youtube.com/"* ]]; then
         echo "That is not a valid YouTube link."
-        exit
+        exit 1
     fi
     data=$(jq '.ytdlp.channels | length' data.json)
-    length=$(($data+1))
+    length=$((data+1))
     tmp=$(mktemp)
     jq --arg ytchannel "$channel" --arg len "$length" \
     '.ytdlp.channels += [{"id": $len, "link": $ytchannel}]' \
     data.json > "$tmp" && mv "$tmp" data.json
-    exit
+    exit 0
 }
 
 function delete_channel () {
+    local tmp
     read -r -p "What channel do you want to delete? Run 'tube-fetch -l' to find out their id: " id
     if [[ $id == "" ]]; then
         echo "This field must not be blank."
-        exit
+        exit 1
     fi
     if [[ ! $id =~ ^[0-9]+$ ]]; then
         echo "Not a number. Try again."
-        exit
+        exit 1
     fi
     tmp=$(mktemp)
     jq --arg id "$id" 'del(.ytdlp.channels[] | select(.id == $id))' \
     data.json > "$tmp" && mv "$tmp" data.json
-    exit 
+    exit 0
 }
 
 function list_channels () {
+    local data
     data=$(jq -r '.ytdlp.channels[] | .id, .link' data.json)
     if [[ ! $data ]]; then
         echo "Zero channels"
     fi
     echo "$data"
-    exit
+    exit 0
 }
 
 function configure_download_days () {
+    local tmp
     read -r -p "How many days worth of videos should be downloaded?: " days
     if [[ ! $days ]]; then
         echo "Cannot leave empty."
-        exit
+        exit 1
     fi
     if [[ ! $days =~ ^[0-9]+$ ]]; then
         echo "Not a number. Try again."
-        exit
+        exit 1
     fi
     tmp=$(mktemp)
     jq --arg d "$days" '.ytdlp.download_days = $d' \
     data.json > "$tmp" && mv "$tmp" data.json
-    exit
+    exit 0
 }
 
 function configure_download_dir () {
+    local tmp
     read -r -p "Where to download videos?: " location
     if [[ "$location" == "" ]]; then
         echo "This field must not be blank."
-        exit
+        exit 1
     fi
     tmp=$(mktemp)
     jq --arg dir "$location" '.ytdlp.download_dir = $dir' \
     data.json > "$tmp" && mv "$tmp" data.json
-    exit
+    exit 0
 }
 
 function download_video () {
+    local channels file download_days download_dir download_date
     if [[ ! -x $(which ffmpeg) ]]; then
         echo -e "\033[1;33mFFMPEG missing. It is highly recommended to install it.\033[0m"
         read -r -p "Proceed without ffmpeg? (y/n): " answer
         if [[ ! "$answer" == "y" ]]; then
             echo "Program execution stopped."
-            exit
+            exit 0
         fi
     fi
     channels=$(jq -r .ytdlp.channels[].link data.json)
     if [[ ! $channels ]]; then
         echo -e "\033[1;31mAdd channel or playlist links with 'tube-fetch -a' before running 'tube-fetch'\033[0m"
-        exit
+        exit 1
     fi
     file="%(channel)s/%(upload_date)s - %(title)s.%(ext)s"
     download_days=$(jq -r .ytdlp.download_days data.json)
@@ -109,7 +126,7 @@ function download_video () {
         --dateafter "$download_date" \
         --output "$download_dir/$file" "$channel"
     done
-    exit
+    exit 0
 }
 
 function print_help() {
@@ -124,10 +141,10 @@ function print_help() {
     echo "    " "-c""                                               Configure how many days worth of videos to download."
     echo "    " "-d""                                               Configure in which directory videos get downloaded to."
     echo "    " "-del""                                             Delete a channel or a playlist."
-    exit
+    exit 0
 }
 
-function err_msg() { echo "Invalid argument. Run 'yt-auto --help' for help."; exit; }
+function err_msg() { echo "Invalid argument. Run 'yt-auto --help' for help."; exit 0; }
 
 case "$1" in
     "") download_video ;;
