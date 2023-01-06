@@ -37,13 +37,12 @@ if [[ ! -r "data.json" ]]; then
 fi
 
 function add_channel () {
-    local data channelName tmp
+    local channelName tmp
     read -r -p "Paste channel name: " channel
     if [[ ! $channel == "https://www.youtube.com/"* ]]; then
         echo "That is not a valid YouTube link."
         exit 1
     fi
-    data=$(jq '.ytdlp.channels | length' data.json)
     channelName=$(yt-dlp -O channel --playlist-end 1 "$channel")
     tmp=$(mktemp)
     jq --arg ytchannel "$channel" --arg name "$channelName" \
