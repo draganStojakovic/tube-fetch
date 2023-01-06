@@ -19,6 +19,11 @@ requireBashVersion 4.2 || {
 
 which yt-dlp >/dev/null 2>&1 || { echo -e "\033[1;31mInstall yt-dlp for this script to work.\033[0m"; exit 1; }
 which jq >/dev/null 2>&1 || { echo -e "\033[1;31mInstall jq for this script to work.\033[0m"; exit 1; }
+which ffmpeg >/dev/null 2>&1 || {
+    echo -e "\033[1;33mInstall ffmpeg for this script to work correctly.\033[0m"
+    echo "Moving on..."
+    noFfmpeg=true
+}
 
 if [[ ! -r "data.json" ]]; then
     echo "Initial setup..."
@@ -106,14 +111,6 @@ function configure_download_dir () {
 
 function download_video () {
     local channels file download_days download_dir download_date
-    if [[ ! -x $(which ffmpeg) ]]; then
-        echo -e "\033[1;33mFFMPEG missing. It is highly recommended to install it.\033[0m"
-        read -r -p "Proceed without ffmpeg? (y/n): " answer
-        if [[ ! "$answer" == "y" ]]; then
-            echo "Program execution stopped."
-            exit 0
-        fi
-    fi
     channels=$(jq -r .ytdlp.channels[].link data.json)
     if [[ ! $channels ]]; then
         echo -e "\033[1;31mAdd channel or playlist links with 'tube-fetch -a' before running 'tube-fetch'\033[0m"
@@ -123,6 +120,14 @@ function download_video () {
     download_days=$(jq -r .ytdlp.download_days data.json)
     download_dir=$(jq -r .ytdlp.download_dir data.json)
     download_date="$(date -d  "$download_days days ago" '+%Y%m%d')"
+    if [[ $noFfmpeg ]]; then
+        for channel in $channels; do
+            yt-dlp --break-on-reject \
+            --dateafter "$download_date" \
+            --output "$download_dir/$file" "$channel"
+        done
+        exit 0
+    fi
     for channel in $channels; do
         yt-dlp -ciw -S "+res:1080,vcodec:vp9,acodec:opus" \
         --embed-chapters --embed-subs --sub-langs=en \
