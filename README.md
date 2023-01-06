@@ -38,4 +38,5 @@ Options:
     -c                                              Configure how many days worth of videos to download.
     -d                                              Configure in which directory videos get downloaded to.
     -del                                            Delete a channel or a playlist.
+    --version, -v                                   Prints app name, version and license.
 ```

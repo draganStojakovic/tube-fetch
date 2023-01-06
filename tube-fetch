@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+appname="tube-fetch"
+ver="0.1"
+license="MIT License Copyright (c) 2023 Dragan"
+
 cd "$(dirname "$0")" || exit
 
 requireBashVersion () {
@@ -129,6 +133,12 @@ function download_video () {
     exit 0
 }
 
+function print_version {
+    echo "$appname $ver"
+    echo "$license"
+    exit 0
+}
+
 function print_help() {
     echo "Usage:" 
     echo "    " "tube-fetch""                                       Checks for new videos and then downloads them."
@@ -141,6 +151,7 @@ function print_help() {
     echo "    " "-c""                                               Configure how many days worth of videos to download."
     echo "    " "-d""                                               Configure in which directory videos get downloaded to."
     echo "    " "-del""                                             Delete a channel or a playlist."
+    echo "    " "--version, -v""                                    Prints app name, version and license."
     exit 0
 }
 
@@ -155,5 +166,7 @@ case "$1" in
     "-d") configure_download_dir ;;
     "-h") print_help ;;
     "--help") print_help ;;
+    "-v") print_version ;;
+    "--version") print_version ;;
     *) err_msg ;;
 esac
