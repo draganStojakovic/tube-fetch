@@ -22,7 +22,7 @@ tube-fetch downloads YouTube videos which it sources from channel links stored i
 
 ### Important note:
 
-This script assumes [yt-dlp](https://github.com/yt-dlp/yt-dlp) is in your PATH. In case it is not, either add it to your PATH, or modify *YTDLP* variable near the top of the file to include it.
+This script assumes that listed dependencies are in your PATH and it will not function at all if it can't find them. 
 
 ## How to use:
 
